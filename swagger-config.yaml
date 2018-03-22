@@ -1,0 +1,194 @@
+openapi: '3.0.0'
+info:
+  description: 'This is an example REST API that manages cats on a cat farm.'
+  version: '1.0.0'
+  title: 'CatFarm'
+servers:
+  - url: 'http://catfarm.takewalks.com/api/v1'
+    description: 'Production server'
+tags:
+  - name: 'cat'
+    description: 'Manage the cats'
+  - name: 'feed'
+    description: 'Feed the cats'
+security:
+  - ApiKeyAuth: []
+paths:
+  /cats:
+    get:
+      tags:
+        - 'cat'
+      summary: 'Returns a list of cats on the farm'
+      parameters:
+        - in: query
+          name: status
+          description: 'Filter based on the status field'
+          schema:
+            $ref: '#/components/schemas/CatStatuses'
+        - in: query
+          name: last_fed
+          description: 'Filter cats that have not been fed since the date-time given'
+          schema:
+            type: string
+            format: date-time
+          example: '2018-03-21T18:47:54.955Z'
+      responses:  
+        200:
+          description: 'An array of cats'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Cat'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+    post:
+      tags:
+        - 'cat'
+      summary: 'Creates a new cat'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cat'
+      responses:
+        201:
+          description: 'Created'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+  /cats/{catId}:
+    parameters:
+      - $ref: '#/components/parameters/catId'
+    get:
+      tags:
+        - 'cat'
+      summary: 'Return a cat based on its ID'
+      responses:
+        200:
+          description: 'The cat object'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cat'
+        404:
+          $ref: '#/components/responses/NotFound'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+    put:
+      tags:
+        - 'cat'
+      summary: 'Edit an existing cat'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cat'
+      responses:
+        200:
+          description: 'Cat successfully updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cat'
+        404:
+          $ref: '#/components/responses/NotFound'
+        400:
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags:
+        - 'cat'
+      summary: 'Delete an existing cat'
+      responses:
+        200:
+          description: 'Delete operation successful'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+  /feed:
+    post:
+      tags:
+        - 'feed'
+      summary: 'Feed the given cats, updating their last_fed date'
+      requestBody:
+        description: 'Give an array of Cat IDs to update their last_fed date to the current date-time'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+              example: [1,2,3,4]
+      responses:
+        200:
+          description: 'last_fed date updated successfully'
+        404:
+          $ref: '#/components/responses/NotFound'
+        401:
+          $ref: '#/components/responses/NotAuthorized'
+    
+
+components:
+  parameters:
+    catId:
+      in: path
+      name: catId
+      schema:
+        type: integer
+      required: true
+      description: 'Numeric ID of the cat you would like to get'
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+  schemas:
+    Cat:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        age:
+          type: integer
+        last_fed:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/CatStatuses'
+    CatStatuses:
+      type: string
+      enum:
+        - available
+        - adopted
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    NotFound:
+      description: 'The specified resource was not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: 'The request was invalid or cannot be served'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotAuthorized:
+      description: 'API key is missing or invalid'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
